@@ -1,15 +1,34 @@
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+import javax.swing.*;
+import java.awt.*;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
+
 public class Main {
     public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
+        Chip8Emulator emu = new Chip8Emulator();
+        emu.run();
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
-        }
+//        boolean value = true;
+
+        //TEST FILL N OUT
+//        for (int x = 0; x < myDisplay.getWidth() / 10; x++) {
+//            for (int y = 0; y < myDisplay.getHeight() / 10; y++) {
+//                try {
+//                    TimeUnit.MILLISECONDS.sleep(1);
+//                    myDisplay.setPixel(x, y, value);
+//                } catch (InterruptedException e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }
+//
+//            if (x == ((myDisplay.getWidth() / 10) - 1)) {
+//                x = -1;
+//                value = !value;
+//            }
+//        }
     }
 }

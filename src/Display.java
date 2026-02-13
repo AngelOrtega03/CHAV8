@@ -18,7 +18,7 @@ public class Display extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        g.setColor(Color.GREEN);
+        g.setColor(Color.WHITE);
 
         for (int x = 0; x < WIDTH; x++) {
             for (int y = 0; y < HEIGHT; y++) {

@@ -177,32 +177,30 @@ public class CPU {
     // Null Method
     private void OP_NULL() {
         // Does nothing
-        // System.err.println("Opcode no implementado: " + Integer.toHexString(opcode));
-        System.out.println("NULL command called");
+        //System.out.println("NULL command called");
     }
 
     // Start Operations
     private void OP_00E0() { // CLS video matrix with zeroes
         Arrays.fill(video, false);
-        System.out.println("CLS command called");
+        //System.out.println("CLS command called");
     }
 
     private void OP_00EE() { // RET Return from a subroutine
-        --this.sp;
+        this.sp--;
         this.pc = this.stack[sp];
-        System.out.println("RET command called");
+        //System.out.println("RET command called");
     }
 
     private void OP_1NNN() { // JP Jump to location NNN
-        this.pc = (short)(this.opcode & 0xFFF);
-        System.out.println("JP command called");
+        this.pc = (short)(this.opcode & 0x0FFF);
+        //System.out.println("JP command called");
     }
 
     private void OP_2NNN() { // CALL Call subroutine at NNN
-        this.stack[this.sp] = this.pc;
-        ++this.sp;
+        this.stack[this.sp++] = this.pc;
         this.pc = (short)(this.opcode & 0x0FFF);
-        System.out.println("CALL command called");
+        //System.out.println("CALL command called");
     }
 
     private void OP_3XKK() { // SE Skip next instruction if Vx == kk
@@ -212,7 +210,7 @@ public class CPU {
         if ((this.registers[Vx] & 0xFF) == Byte){
             this.pc += 2;
         }
-        System.out.println("SE Vx == kk command called");
+        //System.out.println("SE Vx == kk command called");
     }
 
     private void OP_4XKK() { // SNE Skip next instruction if Vx != kk
@@ -222,17 +220,17 @@ public class CPU {
         if ((this.registers[Vx] & 0xFF) != Byte){
             this.pc += 2;
         }
-        System.out.println("SNE Vx != kk command called");
+        //System.out.println("SNE Vx != kk command called");
     }
 
     private void OP_5XY0() { // SE Skip next instruction if Vx = Vy
         int Vx = (this.opcode & 0x0F00) >> 8;
         int Vy = (this.opcode & 0x00F0) >> 4;
 
-        if (this.registers[Vx] == this.registers[Vy]) {
+        if ((this.registers[Vx] & 0xFF) == (this.registers[Vy] & 0xFF)) {
             this.pc += 2;
         }
-        System.out.println("SE Vx == Vy command called");
+        //System.out.println("SE Vx == Vy command called");
     }
 
     private void OP_6XKK() { // LD Set Vx = kk
@@ -240,7 +238,7 @@ public class CPU {
         int Byte = this.opcode & 0x00FF;
 
         this.registers[Vx] = (short)(Byte & 0xFF);
-        System.out.println("LD Vx = kk command called");
+        //System.out.println("LD Vx = kk command called");
     }
 
     private void OP_7XKK() { // ADD Set Vx = Vx + kk
@@ -248,7 +246,7 @@ public class CPU {
         int Byte = this.opcode & 0x00FF;
 
         this.registers[Vx] += (short)(Byte & 0xFF);
-        System.out.println("ADD Vx = Vx + kk command called");
+        //System.out.println("ADD Vx = Vx + kk command called");
     }
 
     private void OP_8XY0() { // LD Set Vx = Vy
@@ -256,7 +254,7 @@ public class CPU {
         int Vy = (this.opcode & 0x00F0) >> 4;
 
         this.registers[Vx] = this.registers[Vy];
-        System.out.println("LD Vx = Vy command called");
+        //System.out.println("LD Vx = Vy command called");
     }
 
     private void OP_8XY1() { // OR Set Vx = Vx OR Vy
@@ -264,7 +262,7 @@ public class CPU {
         int Vy = (this.opcode & 0x00F0) >> 4;
 
         this.registers[Vx] |= this.registers[Vy];
-        System.out.println("OR Vx = Vx OR Vy command called");
+        //System.out.println("OR Vx = Vx OR Vy command called");
     }
 
     private void OP_8XY2() { // AND Set Vx = Vx AND Vy
@@ -272,7 +270,7 @@ public class CPU {
         int Vy = (this.opcode & 0x00F0) >> 4;
 
         this.registers[Vx] &= this.registers[Vy];
-        System.out.println("AND Vx = Vx AND Vy command called");
+        //System.out.println("AND Vx = Vx AND Vy command called");
     }
 
     private void OP_8XY3() { // XOR Set Vx = Vx XOR Vy
@@ -280,7 +278,7 @@ public class CPU {
         int Vy = (this.opcode & 0x00F0) >> 4;
 
         this.registers[Vx] ^= this.registers[Vy];
-        System.out.println("XOR Vx = Vx XOR Vy command called");
+        //System.out.println("XOR Vx = Vx XOR Vy command called");
     }
 
     private void OP_8XY4() { // ADD Set Vx = Vx + Vy, set VF = carry
@@ -291,7 +289,7 @@ public class CPU {
 
         this.registers[0xF] = (short)((sum > 0xFF) ? 1 : 0);
         this.registers[Vx] = (short)(sum & 0xFF);
-        System.out.println("ADD Vx = Vx + Vy SET VF command called");
+        //System.out.println("ADD Vx = Vx + Vy SET VF command called");
     }
 
     private void OP_8XY5() { // SUB Set Vx = Vx - Vy, set VF = NOT borrow
@@ -300,18 +298,18 @@ public class CPU {
 
         this.registers[0xF] = (short)((this.registers[Vx] > this.registers[Vy]) ? 1 : 0);
         this.registers[Vx] -= this.registers[Vy];
-        System.out.println("SUB Vx = Vx - Vy SET VF command called");
+        //System.out.println("SUB Vx = Vx - Vy SET VF command called");
     }
 
     private void OP_8XY6() { // SHR Set Vx = Vx SHR 1, If the least-significant bit of Vx is 1, then VF is set to 1, otherwise 0. Then Vx is divided by 2
         int Vx = (this.opcode & 0x0F00) >> 8;
-        int valor = this.registers[Vx] & 0xFF;
+        int vxValue = this.registers[Vx] & 0xFF;
 
-        this.registers[0xF] = (byte)(valor & 1);
+        this.registers[0xF] = (short)(vxValue & 1);
 
-        valor = (valor >> 1) & 0xFF;
+        vxValue = (vxValue >> 1) & 0xFF;
 
-        this.registers[Vx] = (short)valor;
+        this.registers[Vx] = (short)vxValue;
         System.out.println("SHR Vx = Vx SHR 1 command called");
     }
 
@@ -342,7 +340,7 @@ public class CPU {
         int Vx = (this.opcode & 0x0F00) >> 8;
         int Vy = (this.opcode & 0x00F0) >> 4;
 
-        if (this.registers[Vx] != this.registers[Vy]) {
+        if ((this.registers[Vx] & 0xFF) != (this.registers[Vy] & 0xFF)) {
             this.pc += 2;
         }
         System.out.println("SNE Vx != Vy command called");

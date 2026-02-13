@@ -16,23 +16,13 @@ public class Chip8Emulator {
         this.cpu = new CPU();
         this.display = new Display();
 
-        this.cpu.loadRom("test_opcode.ch8");
+        this.cpu.loadRom("pong.ch8");
 
         this.frame = new JFrame("CHAV8");
         this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.frame.setLayout(new BorderLayout());
         this.frame.setResizable(false);
         this.frame.add(this.display, BorderLayout.CENTER);
-
-//        JPanel controlPanel = new JPanel();
-//        JButton loadButton = new JButton("Load ROM");
-//        JButton startButton = new JButton("Start ROM");
-//        loadButton.addActionListener(e -> this.cpu.loadRom("test_logo.ch8"));
-//        startButton.addActionListener(e -> this.run());
-//        controlPanel.add(loadButton);
-//        controlPanel.add(startButton);
-//
-//        this.frame.add(controlPanel, BorderLayout.SOUTH);
         this.frame.pack();
         this.frame.setLocationRelativeTo(null);
         this.frame.setVisible(true);
@@ -94,8 +84,15 @@ public class Chip8Emulator {
     }
 
     public void run() {
+        try {
+            setStartScreen();
+            TimeUnit.SECONDS.sleep(4);
+            display.clear();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
         while(true) {
-            for (int i = 0; i < 5; i++) {
+            for (int i = 0; i < 10; i++) {
                 this.cpu.cycle();
             }
 

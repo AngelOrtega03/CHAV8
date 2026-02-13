@@ -1,27 +1,102 @@
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.sql.Time;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class Chip8Emulator {
     private CPU cpu;
     private Display display;
     private JFrame frame;
+//
+    private SwingWorker<Void, Void> emulatorWorker;
+
+    private File fileSelected;
+    private boolean gameClosed;
+
+    JMenuItem pauseItem;
+    JMenuItem closeGameItem;
+    JMenuItem resetItem;
 
     public Chip8Emulator() {
         this.cpu = new CPU();
         this.display = new Display();
 
-        this.cpu.loadRom("pong.ch8");
-
         this.frame = new JFrame("CHAV8");
         this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.frame.setLayout(new BorderLayout());
+        this.frame.setLayout(new java.awt.FlowLayout());
         this.frame.setResizable(false);
+
+        JMenuBar menuBar = new JMenuBar();
+        JMenu fileMenu = new JMenu("File");
+        JMenu configMenu = new JMenu("Config");
+
+        //Pause Item
+        this.pauseItem = new JMenuItem("Pause");
+        this.pauseItem.addActionListener(e -> stop());
+        this.pauseItem.setVisible(false);
+        //Close Item
+        this.closeGameItem = new JMenuItem("Close game");
+        this.closeGameItem.addActionListener(e -> closeGame());
+        this.closeGameItem.setVisible(false);
+        //Reset Item
+        this.resetItem = new JMenuItem("Reset");
+        this.resetItem.addActionListener(e -> resetGame());
+        this.resetItem.setVisible(false);
+        //Run Item
+        JMenuItem runItem = new JMenuItem("Run");
+        Action runItemAction = new AbstractAction("Run") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                resetItem.setVisible(true);
+                pauseItem.setVisible(true);
+                closeGameItem.setVisible(true);
+                run();
+            }
+        };
+        runItem.setAction(runItemAction);
+        runItem.setVisible(false);
+        //Open Item
+        JMenuItem openItem = new JMenuItem("Open");
+        Action openItemAction = new AbstractAction("Open") {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                JFileChooser fileChooser = new JFileChooser();
+                try {
+                    String currentDir = System.getProperty("user.dir");
+                    fileChooser.setCurrentDirectory(new File(currentDir,"roms").getCanonicalFile());
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex.getMessage());
+                }
+                int result = fileChooser.showOpenDialog(null);
+                if (result == JFileChooser.APPROVE_OPTION) {
+                    fileSelected = fileChooser.getSelectedFile();
+                    cpu.loadRom(fileSelected.getAbsolutePath());
+                    runItem.setText("Run - "+fileSelected.getAbsolutePath());
+                    runItem.setVisible(true);
+                }
+            }
+        };
+        openItem.setAction(openItemAction);
+
+        fileMenu.add(openItem);
+        fileMenu.add(runItem);
+        fileMenu.add(resetItem);
+        fileMenu.add(closeGameItem);
+        fileMenu.add(pauseItem);
+
+        menuBar.add(fileMenu);
+        menuBar.add(configMenu);
+        this.frame.setJMenuBar(menuBar);
+
         this.frame.add(this.display, BorderLayout.CENTER);
         this.frame.pack();
         this.frame.setLocationRelativeTo(null);
@@ -38,8 +113,7 @@ public class Chip8Emulator {
         });
         this.frame.setFocusable(true);
 
-
-//        setStartScreen();
+        setStartScreen();
     }
 
     private int mapKey(int keyCode) {
@@ -67,6 +141,7 @@ public class Chip8Emulator {
 
     public void setStartScreen() {
         try (BufferedReader reader = new BufferedReader(new FileReader("pan.txt"))){
+            this.display.clear();
             String line;
             int y = 0;
             while ((line = reader.readLine()) != null) {
@@ -77,37 +152,75 @@ public class Chip8Emulator {
                 }
                 y++;
             }
-            System.out.println("START IMAGE FINISHED!");
+            //System.out.println("START IMAGE FINISHED!");
         } catch(IOException e) {
             System.err.println(e.getMessage());
         }
     }
 
+    public void setRom(String filename) {
+        this.cpu.loadRom(filename);
+    }
+
     public void run() {
-        try {
-            setStartScreen();
-            TimeUnit.SECONDS.sleep(4);
-            display.clear();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+        if (this.gameClosed) {
+            this.gameClosed = false;
+            resetGame();
         }
-        while(true) {
-            for (int i = 0; i < 10; i++) {
-                this.cpu.cycle();
-            }
 
-            boolean[][] videoMatrix = this.cpu.getVideoMatrix();
-            for(int y=0; y<32; y++) {
-                for (int x=0; x<64; x++) {
-                    this.display.setPixel(x, y, videoMatrix[x][y]);
+        display.clear();
+
+        if (emulatorWorker != null && !emulatorWorker.isDone()) {
+            return;
+        }
+
+        emulatorWorker = new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                while (!isCancelled()) {
+                    for (int i = 0; i < 10; i++) {
+                        cpu.cycle();
+                    }
+
+                    publish();
+
+                    Thread.sleep(16);
                 }
+                return null;
             }
 
-            try {
-                Thread.sleep(16);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            @Override
+            protected void process(List<Void> chunks) {
+                boolean[][] videoMatrix = cpu.getVideoMatrix();
+                for (int y = 0; y < 32; y++) {
+                    for (int x = 0; x < 64; x++) {
+                        display.setPixel(x, y, videoMatrix[x][y]);
+                    }
+                }
+                display.repaint();
             }
+        };
+
+        emulatorWorker.execute();
+    }
+
+    public void resetGame() {
+        stop();
+        cpu.loadRom(fileSelected.getAbsolutePath());
+        run();
+    }
+
+    public void stop() {
+        if (emulatorWorker != null) {
+            emulatorWorker.cancel(true);
         }
+    }
+
+    public void closeGame() {
+        stop();
+        setStartScreen();
+        resetItem.setVisible(false);
+        pauseItem.setVisible(false);
+        closeGameItem.setVisible(false);
     }
 }

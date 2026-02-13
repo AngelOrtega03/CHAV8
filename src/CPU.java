@@ -29,6 +29,8 @@ public class CPU {
     private boolean[] keyboard = new boolean[16];
     //Random number generator
     private Random random = new Random();
+    //ROM Loaded flag
+    private boolean romLoaded;
 
     //Op tables
     private Map<Integer, Runnable> table;
@@ -71,7 +73,10 @@ public class CPU {
 
         Arrays.fill(this.registers, (short)0);
         Arrays.fill(this.memory, (short)0);
+        Arrays.fill(this.video, false);
         Arrays.fill(this.stack, (short)0);
+
+        this.romLoaded = false;
 
         for (int i = 0; i < FONTSET_SIZE; ++i) {
             this.memory[FONTSET_START_ADDRESS + i] = (short)this.fontset[i];
@@ -310,7 +315,7 @@ public class CPU {
         vxValue = (vxValue >> 1) & 0xFF;
 
         this.registers[Vx] = (short)vxValue;
-        System.out.println("SHR Vx = Vx SHR 1 command called");
+        //System.out.println("SHR Vx = Vx SHR 1 command called");
     }
 
     private void OP_8XY7() { // SUBN Set Vx = Vy - Vx SHR 1, set VF = NOT borrow
@@ -321,19 +326,19 @@ public class CPU {
 
         this.registers[0xF] = (short)((this.registers[Vy] > this.registers[Vx]) ? 1 : 0);
         this.registers[Vx] = (short)(result & 0xFF);
-        System.out.println("SUBN Vx = Vy - Vx SHR 1 command called");
+        //System.out.println("SUBN Vx = Vy - Vx SHR 1 command called");
     }
 
     private void OP_8XYE() { // SHL Set Vx = Vx SHL 1, If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. Then Vx is multiplied by 2.
         int Vx = (this.opcode & 0x0F00) >> 8;
-        int valor = this.registers[Vx] & 0xFF;
+        int vxValue = this.registers[Vx] & 0xFF;
 
-        this.registers[0xF] = (short)((valor >> 7) & 1);
+        this.registers[0xF] = (short)((vxValue >> 7) & 1);
 
-        valor = (valor << 1) & 0xFF;
+        vxValue = (vxValue << 1) & 0xFF;
 
-        this.registers[Vx] = (short)valor;
-        System.out.println("SHL Vx = Vx SHL 1 command called");
+        this.registers[Vx] = (short)vxValue;
+        //System.out.println("SHL Vx = Vx SHL 1 command called");
     }
 
     private void OP_9XY0() { // SNE, Skip next instruction if Vx != Vy
@@ -343,14 +348,14 @@ public class CPU {
         if ((this.registers[Vx] & 0xFF) != (this.registers[Vy] & 0xFF)) {
             this.pc += 2;
         }
-        System.out.println("SNE Vx != Vy command called");
+        //System.out.println("SNE Vx != Vy command called");
     }
 
     private void OP_ANNN() { // LD, Set I = NNN
         int address = this.opcode & 0x0FFF;
 
         this.index = (short)address;
-        System.out.println("LD I = NNN command called");
+        //System.out.println("LD I = NNN command called");
     }
 
     private void OP_BNNN() { // JP, Jump to location NNN + V0
@@ -359,7 +364,7 @@ public class CPU {
         int v0value = this.registers[0] & 0xFF;
 
         this.pc = (short)(address + v0value);
-        System.out.println("JP NNN + V0 command called");
+        //System.out.println("JP NNN + V0 command called");
     }
 
     private void OP_CXKK() { // RND, Set Vx = random byte AND KK.
@@ -367,7 +372,7 @@ public class CPU {
         int Byte = this.opcode & 0x00FF;
 
         this.registers[Vx] = (short)((randByte() & Byte) & 0xFF);
-        System.out.println("RND Vx = random AND kk command called");
+        //System.out.println("RND Vx = random AND kk command called");
     }
 
     private void OP_DXYN() { // DRW, Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision
@@ -402,7 +407,7 @@ public class CPU {
                 }
             }
         }
-        System.out.println("DRW command called");
+        //System.out.println("DRW command called");
     }
 
     private void OP_EX9E() { // SKP, Skip next instruction if key with the value of Vx is pressed.
@@ -413,7 +418,7 @@ public class CPU {
         if(keyIndex < this.keyboard.length && this.keyboard[keyIndex]) {
             this.pc += 2;
         }
-        System.out.println("SKP key[Vx] = 1 command called");
+        //System.out.println("SKP key[Vx] = 1 command called");
     }
 
     private void OP_EXA1() { // SKNP, Skip next instruction if key with the value of Vx is not pressed.
@@ -424,14 +429,14 @@ public class CPU {
         if(keyIndex < this.keyboard.length && !this.keyboard[keyIndex]) {
             this.pc += 2;
         }
-        System.out.println("SKP key[Vx] = 0 command called");
+        //System.out.println("SKP key[Vx] = 0 command called");
     }
 
     private void OP_FX07() { // LD, Set Vx = delay timer value.
         int Vx = (this.opcode & 0x0F00) >> 8;
 
         this.registers[Vx] = (byte)(this.delayTimer & 0xFF);
-        System.out.println("LD Vx = delay command called");
+        //System.out.println("LD Vx = delay command called");
     }
 
     private void OP_FX0A() { // LD, Wait for a key press, store the value of the key in Vx.
@@ -449,28 +454,28 @@ public class CPU {
         if (!keyPressed) {
             this.pc -= 2;
         }
-        System.out.println("LD Vx = key command called");
+        //System.out.println("LD Vx = key command called");
     }
 
     private void OP_FX15() { // LD, Set DelayTimer = Vx
         int Vx = (this.opcode & 0x0F00) >> 8;
 
         this.delayTimer = this.registers[Vx];
-        System.out.println("LD delay = Vx command called");
+        //System.out.println("LD delay = Vx command called");
     }
 
     private void OP_FX18() { // LD, Set SoundTimer = Vx
         int Vx = (this.opcode & 0x0F00) >> 8;
 
         this.soundTimer = this.registers[Vx];
-        System.out.println("LD sound = Vx command called");
+        //System.out.println("LD sound = Vx command called");
     }
 
     private void OP_FX1E() { // ADD, Set I = I + Vx;
         int Vx = (this.opcode & 0x0F00) >> 8;
 
         this.index += this.registers[Vx];
-        System.out.println("ADD I = I + Vx = 0 command called");
+        //System.out.println("ADD I = I + Vx = 0 command called");
     }
 
     private void OP_FX29() { // LD, Set I = location of sprite for digit Vx.
@@ -479,7 +484,7 @@ public class CPU {
         int digit = this.registers[Vx] & 0x0F;
 
         this.index = (short)(FONTSET_START_ADDRESS + (5 * digit));
-        System.out.println("LD I = digit[vx] command called");
+        //System.out.println("LD I = digit[vx] command called");
     }
 
     private void OP_FX33() { // LD, Store BCD representation of Vx in memory locations I, I+1, and I+2
@@ -493,7 +498,7 @@ public class CPU {
         this.memory[this.index] = (short)hundreds;
         this.memory[this.index + 1] = (short)tens;
         this.memory[this.index + 2] = (short)units;
-        System.out.println("LD Vx BCD command called");
+        //System.out.println("LD Vx BCD command called");
     }
 
     private void OP_FX55() { // LD, Store registers V0 through Vx in memory starting at location I.
@@ -503,16 +508,16 @@ public class CPU {
             this.memory[this.index + i] = (short)(this.registers[i] & 0xFF);
         }
 
-        System.out.println("LD V0 - Vx -> memory[I] command called");
+        //System.out.println("LD V0 - Vx -> memory[I] command called");
     }
 
     private void OP_FX65() { // LD, Read registers V0 through Vx from memory starting at location I.
         int Vx = (this.opcode & 0x0F00) >> 8;
 
-        for (int i = 0; i <= Vx; ++i) {
+        for (int i = 0; i <= Vx; i++) {
             this.registers[i] = this.memory[this.index + i];
         }
-        System.out.println("LD memory[I] -> V0 - Vx command called");
+        //System.out.println("LD memory[I] -> V0 - Vx command called");
     }
 
     // End Operations
@@ -543,6 +548,7 @@ public class CPU {
     }
 
     public void loadRom(String fileName) {
+        reset();
         try {
             Path path = Paths.get(fileName);
             byte[] romData = Files.readAllBytes(path);
@@ -555,6 +561,8 @@ public class CPU {
                 this.memory[START_ADDRESS+i] = (short)(romData[i] & 0xFF);
             }
 
+            this.romLoaded = true;
+
             System.out.println("ROM cargado: "+romData.length+" bytes");
 
             dumpState();
@@ -563,6 +571,10 @@ public class CPU {
         } catch(IllegalArgumentException e) {
             System.err.println("Error: "+e.getMessage());
         }
+    }
+
+    public boolean isRomLoaded() {
+        return romLoaded;
     }
 
     public void keyPressed(int keyCode) {

@@ -15,30 +15,66 @@ import java.util.concurrent.TimeUnit;
 public class Chip8Emulator {
     private CPU cpu;
     private Display display;
-    private JFrame frame;
-//
+    private JFrame frame;               //Main program window
+    private JFrame colorsFrame;         //Color config window
+    private JFrame clockSpeedFrame;     //Clock speed config window
+    private JFrame buttonLayoutFrame;   //Button layout config window
+
     private SwingWorker<Void, Void> emulatorWorker;
+
+    private Configuration config;
 
     private File fileSelected;
     private boolean gameClosed;
 
+    //File Menu Items
     JMenuItem pauseItem;
     JMenuItem closeGameItem;
     JMenuItem resetItem;
 
+    //Config Menu Items
+    JMenuItem colorsItem;
+    JMenuItem clockSpeedItem;
+    JMenuItem buttonLayoutItem;
+
     public Chip8Emulator() {
         this.cpu = new CPU();
-        this.display = new Display();
+        this.config = new Configuration();
+        this.display = new Display(this.config);
 
+        /// Main program window
         this.frame = new JFrame("CHAV8");
         this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.frame.setLayout(new java.awt.FlowLayout());
         this.frame.setResizable(false);
+        /// Config windows
+        //Colors window
+        this.colorsFrame = new JFrame("CHAV8 - Color Configuration");
+        this.colorsFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        this.colorsFrame.setSize(300, 200);
+        this.colorsFrame.setResizable(false);
+        this.colorsFrame.setVisible(false);
+        this.colorsFrame.setLocationRelativeTo(null);
+        //Clock speed window
+        this.clockSpeedFrame = new JFrame("CHAV8 - Clock Speed Configuration");
+        this.clockSpeedFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        this.clockSpeedFrame.setSize(300,200);
+        this.clockSpeedFrame.setResizable(false);
+        this.clockSpeedFrame.setVisible(false);
+        this.clockSpeedFrame.setLocationRelativeTo(null);
+        //Button layout window
+        this.buttonLayoutFrame = new JFrame("CHAV8 - Button Layout Configuration");
+        this.buttonLayoutFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        this.buttonLayoutFrame.setSize(300,200);
+        this.buttonLayoutFrame.setResizable(false);
+        this.buttonLayoutFrame.setVisible(false);
+        this.buttonLayoutFrame.setLocationRelativeTo(null);
 
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
         JMenu configMenu = new JMenu("Config");
 
+        /// File Menu
         //Pause Item
         this.pauseItem = new JMenuItem("Pause");
         this.pauseItem.addActionListener(e -> stop());
@@ -87,11 +123,26 @@ public class Chip8Emulator {
         };
         openItem.setAction(openItemAction);
 
+        /// Config menu
+        //Colors Item
+        this.colorsItem = new JMenuItem("Colors");
+        this.colorsItem.addActionListener(e -> this.colorsFrame.setVisible(true));
+        //Clock speed Item
+        this.clockSpeedItem = new JMenuItem("Clock Speed");
+        this.clockSpeedItem.addActionListener(e -> this.clockSpeedFrame.setVisible(true));
+        //Button layout Item
+        this.buttonLayoutItem = new JMenuItem("Button Layout");
+        this.buttonLayoutItem.addActionListener(e -> this.buttonLayoutFrame.setVisible(true));
+
         fileMenu.add(openItem);
         fileMenu.add(runItem);
         fileMenu.add(resetItem);
         fileMenu.add(closeGameItem);
         fileMenu.add(pauseItem);
+
+        configMenu.add(colorsItem);
+        configMenu.add(clockSpeedItem);
+        configMenu.add(buttonLayoutItem);
 
         menuBar.add(fileMenu);
         menuBar.add(configMenu);
@@ -117,26 +168,16 @@ public class Chip8Emulator {
     }
 
     private int mapKey(int keyCode) {
-        // Mapear teclado PC a CHIP8 (0x0-0xF)
-        return switch (keyCode) {
-            case KeyEvent.VK_1 -> 0x1;
-            case KeyEvent.VK_2 -> 0x2;
-            case KeyEvent.VK_3 -> 0x3;
-            case KeyEvent.VK_4 -> 0xC;
-            case KeyEvent.VK_Q -> 0x4;
-            case KeyEvent.VK_W -> 0x5;
-            case KeyEvent.VK_E -> 0x6;
-            case KeyEvent.VK_R -> 0xD;
-            case KeyEvent.VK_A -> 0x7;
-            case KeyEvent.VK_S -> 0x8;
-            case KeyEvent.VK_D -> 0x9;
-            case KeyEvent.VK_F -> 0xE;
-            case KeyEvent.VK_Z -> 0xA;
-            case KeyEvent.VK_X -> 0x0;
-            case KeyEvent.VK_C -> 0xB;
-            case KeyEvent.VK_V -> 0xF;
-            default -> -1;
-        };
+        int[] keyboardMap = this.display.getConfig().getKeyboardConfig();
+        int[] keyboardBytes = this.display.getConfig().getKeyboardByteValues();
+
+        for(int i=0; i<keyboardMap.length; i++) {
+            if(keyboardMap[i] == keyCode) {
+                return keyboardBytes[i];
+            }
+        }
+
+        return -1;
     }
 
     public void setStartScreen() {

@@ -6,11 +6,14 @@ public class Display extends JPanel {
     private static final int HEIGHT = 32;
     private static final int SCALE = 10;
 
+    private Configuration config;
+
     private boolean[][] display = new boolean[WIDTH][HEIGHT];
 
-    public Display() {
+    public Display(Configuration config) {
+        this.config = config;
         setPreferredSize(new Dimension(WIDTH * SCALE, HEIGHT * SCALE));
-        setBackground(Color.BLACK);
+        setBackground(this.config.getBackgroundColor());
         setFocusable(true);
     }
 
@@ -18,7 +21,7 @@ public class Display extends JPanel {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        g.setColor(Color.WHITE);
+        g.setColor(this.config.getPixelColor());
 
         for (int x = 0; x < WIDTH; x++) {
             for (int y = 0; y < HEIGHT; y++) {
@@ -42,5 +45,13 @@ public class Display extends JPanel {
             }
         }
         repaint();
+    }
+
+    public Configuration getConfig() {
+        return this.config;
+    }
+
+    public void setConfig(Configuration newConfig) {
+        this.config = newConfig;
     }
 }

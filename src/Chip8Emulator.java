@@ -1,4 +1,8 @@
+import component.ColorChooserButton;
+
 import javax.swing.*;
+import javax.swing.border.CompoundBorder;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -50,11 +54,59 @@ public class Chip8Emulator {
         /// Config windows
         //Colors window
         this.colorsFrame = new JFrame("CHAV8 - Color Configuration");
+        this.colorsFrame.setLayout(new BorderLayout());
+
+        JPanel colorPickers = new JPanel();
+        colorPickers.setLayout(new GridLayout(2,2));
+
+        JPanel saveNExit = new JPanel();
+        saveNExit.setLayout(new FlowLayout());
+
         this.colorsFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        this.colorsFrame.setSize(300, 200);
+        JComponent content = (JComponent) this.colorsFrame.getContentPane();
+        content.setBorder(new EmptyBorder(20,20,20,20));
         this.colorsFrame.setResizable(false);
         this.colorsFrame.setVisible(false);
         this.colorsFrame.setLocationRelativeTo(null);
+        ColorChooserButton backgroundColorChooser = new ColorChooserButton(this.config.getBackgroundColor());
+        backgroundColorChooser.addColorChangedListener(new ColorChooserButton.ColorChangedListener() {
+            @Override
+            public void colorChanged(Color c) {
+                config.setBackgroundColor(c);
+            }
+        });
+        ColorChooserButton pixelColorChooser = new ColorChooserButton(this.config.getPixelColor());
+        pixelColorChooser.addColorChangedListener(new ColorChooserButton.ColorChangedListener() {
+            @Override
+            public void colorChanged(Color c) {
+                config.setPixelColor(c);
+            }
+        });
+        JLabel bgColorLabel = new JLabel("Background Color:");
+        bgColorLabel.setBorder(new CompoundBorder(bgColorLabel.getBorder(), new EmptyBorder(10, 20, 10, 20)));
+        colorPickers.add(bgColorLabel);
+        colorPickers.add(backgroundColorChooser);
+        JLabel pxColorLabel = new JLabel("Pixel Color:");
+        pxColorLabel.setBorder(new CompoundBorder(pxColorLabel.getBorder(), new EmptyBorder(10,20,10,20)));
+        colorPickers.add(pxColorLabel);
+        colorPickers.add(pixelColorChooser);
+
+        this.colorsFrame.add(colorPickers, BorderLayout.CENTER);
+
+        JButton applyButton = new JButton("Apply");
+        JButton cancelButton = new JButton("Cancel");
+        applyButton.addActionListener(e -> {
+            this.display.updateConfig(this.config);
+        });
+        cancelButton.addActionListener(e -> {
+            this.colorsFrame.dispose();
+        });
+
+        saveNExit.add(applyButton);
+        saveNExit.add(cancelButton);
+
+        this.colorsFrame.add(saveNExit, BorderLayout.SOUTH);
+        this.colorsFrame.pack();
         //Clock speed window
         this.clockSpeedFrame = new JFrame("CHAV8 - Clock Speed Configuration");
         this.clockSpeedFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -225,7 +277,7 @@ public class Chip8Emulator {
 
                     publish();
 
-                    Thread.sleep(16);
+                    Thread.sleep(config.getClockSpeed());
                 }
                 return null;
             }

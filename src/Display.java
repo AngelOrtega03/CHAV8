@@ -32,6 +32,12 @@ public class Display extends JPanel {
         }
     }
 
+    public void updateConfig(Configuration config) {
+        this.config = config;
+        setBackground(this.config.getBackgroundColor());
+        repaint();
+    }
+
     public void setPixel(int x, int y, boolean value) {
         this.display[x][y] = value;
         super.revalidate();
@@ -49,9 +55,5 @@ public class Display extends JPanel {
 
     public Configuration getConfig() {
         return this.config;
-    }
-
-    public void setConfig(Configuration newConfig) {
-        this.config = newConfig;
     }
 }

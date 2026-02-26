@@ -12,12 +12,27 @@ public class Configuration {
     //TODO: Sound Support
     //Speed
     private int clockSpeed;
+    private int framesSkipped;
     
     /// Methods
     public Configuration () {
+        this.reset();
+    }
+
+    public Configuration(Color bgColor, Color pxColor, int[] keybrdConfig, int clkSpeed, int framesSkipped) {
+        this.backgroundColor = bgColor;
+        this.pixelColor = pxColor;
+
+        this.keyboardConfig = keybrdConfig;
+
+        this.clockSpeed = clkSpeed;
+        this.framesSkipped = framesSkipped;
+    }
+
+    public void reset() {
         this.backgroundColor = Color.BLACK;
         this.pixelColor = Color.WHITE;
-        
+
         this.keyboardConfig = new int[]{
                 KeyEvent.VK_1,
                 KeyEvent.VK_2,
@@ -38,15 +53,7 @@ public class Configuration {
         };
 
         this.clockSpeed = 16;
-    }
-
-    public Configuration(Color bgColor, Color pxColor, int[] keybrdConfig, int clkSpeed) {
-        this.backgroundColor = bgColor;
-        this.pixelColor = pxColor;
-
-        this.keyboardConfig = keybrdConfig;
-
-        this.clockSpeed = clkSpeed;
+        this.framesSkipped = 10;
     }
 
     public Color getBackgroundColor() {
@@ -69,6 +76,8 @@ public class Configuration {
         return clockSpeed;
     }
 
+    public int getFramesSkipped() { return framesSkipped; }
+
     public void setBackgroundColor(Color backgroundColor) {
         this.backgroundColor = backgroundColor;
     }
@@ -84,4 +93,6 @@ public class Configuration {
     public void setClockSpeed(int clockSpeed) {
         this.clockSpeed = clockSpeed;
     }
+
+    public void setFramesSkipped(int framesSkipped) { this.framesSkipped = framesSkipped; }
 }

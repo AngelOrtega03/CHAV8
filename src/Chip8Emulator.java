@@ -3,6 +3,8 @@ import component.ColorChooserButton;
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -27,6 +29,7 @@ public class Chip8Emulator {
     private SwingWorker<Void, Void> emulatorWorker;
 
     private Configuration config;
+    private Configuration prevConfig;
 
     private File fileSelected;
     private boolean gameClosed;
@@ -44,6 +47,7 @@ public class Chip8Emulator {
     public Chip8Emulator() {
         this.cpu = new CPU();
         this.config = new Configuration();
+        this.prevConfig = new Configuration();
         this.display = new Display(this.config);
 
         /// Main program window
@@ -51,6 +55,7 @@ public class Chip8Emulator {
         this.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.frame.setLayout(new java.awt.FlowLayout());
         this.frame.setResizable(false);
+
         /// Config windows
         //Colors window
         this.colorsFrame = new JFrame("CHAV8 - Color Configuration");
@@ -68,24 +73,27 @@ public class Chip8Emulator {
         this.colorsFrame.setResizable(false);
         this.colorsFrame.setVisible(false);
         this.colorsFrame.setLocationRelativeTo(null);
+
         ColorChooserButton backgroundColorChooser = new ColorChooserButton(this.config.getBackgroundColor());
         backgroundColorChooser.addColorChangedListener(new ColorChooserButton.ColorChangedListener() {
             @Override
             public void colorChanged(Color c) {
-                config.setBackgroundColor(c);
+                prevConfig.setBackgroundColor(c);
             }
         });
         ColorChooserButton pixelColorChooser = new ColorChooserButton(this.config.getPixelColor());
         pixelColorChooser.addColorChangedListener(new ColorChooserButton.ColorChangedListener() {
             @Override
             public void colorChanged(Color c) {
-                config.setPixelColor(c);
+                prevConfig.setPixelColor(c);
             }
         });
+
         JLabel bgColorLabel = new JLabel("Background Color:");
         bgColorLabel.setBorder(new CompoundBorder(bgColorLabel.getBorder(), new EmptyBorder(10, 20, 10, 20)));
         colorPickers.add(bgColorLabel);
         colorPickers.add(backgroundColorChooser);
+
         JLabel pxColorLabel = new JLabel("Pixel Color:");
         pxColorLabel.setBorder(new CompoundBorder(pxColorLabel.getBorder(), new EmptyBorder(10,20,10,20)));
         colorPickers.add(pxColorLabel);
@@ -96,10 +104,20 @@ public class Chip8Emulator {
         JButton applyButton = new JButton("Apply");
         JButton cancelButton = new JButton("Cancel");
         applyButton.addActionListener(e -> {
+            backgroundColorChooser.setCurrentColor(this.prevConfig.getBackgroundColor());
+            pixelColorChooser.setCurrentColor(this.prevConfig.getPixelColor());
+            this.config.setBackgroundColor(this.prevConfig.getBackgroundColor());
+            this.config.setPixelColor(this.prevConfig.getPixelColor());
             this.display.updateConfig(this.config);
+
+            this.prevConfig.reset();
         });
         cancelButton.addActionListener(e -> {
+            backgroundColorChooser.setCurrentColor(this.config.getBackgroundColor());
+            pixelColorChooser.setCurrentColor(this.config.getPixelColor());
             this.colorsFrame.dispose();
+
+            this.prevConfig.reset();
         });
 
         saveNExit.add(applyButton);
@@ -107,13 +125,84 @@ public class Chip8Emulator {
 
         this.colorsFrame.add(saveNExit, BorderLayout.SOUTH);
         this.colorsFrame.pack();
+
         //Clock speed window
         this.clockSpeedFrame = new JFrame("CHAV8 - Clock Speed Configuration");
+        this.clockSpeedFrame.setLayout(new BorderLayout());
+
+        JPanel clockSpeedNFrames = new JPanel();
+        clockSpeedNFrames.setLayout(new GridLayout(2, 2));
+
+        JPanel clockSpeedSaveNExit = new JPanel();
+        clockSpeedSaveNExit.setLayout(new FlowLayout());
+
         this.clockSpeedFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        this.clockSpeedFrame.setSize(300,200);
+        JComponent clockSpeedContent = (JComponent) this.clockSpeedFrame.getContentPane();
+        clockSpeedContent.setBorder(new EmptyBorder(20,20,20,20));
         this.clockSpeedFrame.setResizable(false);
         this.clockSpeedFrame.setVisible(false);
         this.clockSpeedFrame.setLocationRelativeTo(null);
+
+        SpinnerNumberModel clockSpeedPickerModel = new SpinnerNumberModel(this.config.getClockSpeed(), 0.00, 1000.00, 1.00);
+        JSpinner clockSpeedPicker = new JSpinner(clockSpeedPickerModel);
+        clockSpeedPicker.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                JSpinner source = (JSpinner) e.getSource();
+                prevConfig.setClockSpeed((int)(double)source.getValue());
+            }
+        });
+
+        JLabel clockSpeedLabel = new JLabel("Clock Speed:");
+        clockSpeedLabel.setBorder(new CompoundBorder(clockSpeedLabel.getBorder(), new EmptyBorder(10, 20, 10, 20)));
+        clockSpeedNFrames.add(clockSpeedLabel);
+        clockSpeedNFrames.add(clockSpeedPicker);
+
+        SpinnerNumberModel frameSkipPickerModel = new SpinnerNumberModel(this.config.getFramesSkipped(), 0.00, 30.00, 1.00);
+        JSpinner frameSkipPicker = new JSpinner(frameSkipPickerModel);
+        frameSkipPicker.addChangeListener(new ChangeListener() {
+            @Override
+            public void stateChanged(ChangeEvent e) {
+                JSpinner source = (JSpinner) e.getSource();
+                prevConfig.setFramesSkipped((int)(double)source.getValue());
+            }
+        });
+
+        JLabel frameSkipLabel = new JLabel("Frame(s) skipped:");
+        frameSkipLabel.setBorder(new CompoundBorder(frameSkipLabel.getBorder(), new EmptyBorder(10, 20, 10, 20)));
+        clockSpeedNFrames.add(frameSkipLabel);
+        clockSpeedNFrames.add(frameSkipPicker);
+
+        this.clockSpeedFrame.add(clockSpeedNFrames, BorderLayout.CENTER);
+
+        JButton clockSpeedNFramesApplyButton = new JButton("Apply");
+        JButton clockSpeedNFramesCancelButton = new JButton("Cancel");
+        clockSpeedNFramesApplyButton.addActionListener(e -> {
+            clockSpeedPicker.setValue((double)this.prevConfig.getClockSpeed());
+            frameSkipPicker.setValue((double)this.prevConfig.getFramesSkipped());
+
+            this.config.setClockSpeed(this.prevConfig.getClockSpeed());
+            this.config.setFramesSkipped(this.prevConfig.getFramesSkipped());
+
+            this.display.updateConfig(this.config);
+
+            this.prevConfig.reset();
+        });
+        clockSpeedNFramesCancelButton.addActionListener(e -> {
+            clockSpeedPicker.setValue((double)this.config.getClockSpeed());
+            frameSkipPicker.setValue((double)this.config.getFramesSkipped());
+
+            this.clockSpeedFrame.dispose();
+
+            this.prevConfig.reset();
+        });
+
+        clockSpeedSaveNExit.add(clockSpeedNFramesApplyButton);
+        clockSpeedSaveNExit.add(clockSpeedNFramesCancelButton);
+
+        this.clockSpeedFrame.add(clockSpeedSaveNExit, BorderLayout.SOUTH);
+        this.clockSpeedFrame.pack();
+
         //Button layout window
         this.buttonLayoutFrame = new JFrame("CHAV8 - Button Layout Configuration");
         this.buttonLayoutFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -271,7 +360,7 @@ public class Chip8Emulator {
             @Override
             protected Void doInBackground() throws Exception {
                 while (!isCancelled()) {
-                    for (int i = 0; i < 10; i++) {
+                    for (int i = 0; i < config.getFramesSkipped(); i++) {
                         cpu.cycle();
                     }
 

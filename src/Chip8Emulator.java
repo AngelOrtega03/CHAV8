@@ -1,10 +1,15 @@
 import component.ColorChooserButton;
+import component.KeyMapButton;
 
 import javax.swing.*;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
+import javax.swing.text.DefaultFormatterFactory;
+import javax.swing.text.MaskFormatter;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -33,6 +38,8 @@ public class Chip8Emulator {
 
     private File fileSelected;
     private boolean gameClosed;
+
+    private int[] buttonMapping;
 
     //File Menu Items
     JMenuItem pauseItem;
@@ -205,11 +212,106 @@ public class Chip8Emulator {
 
         //Button layout window
         this.buttonLayoutFrame = new JFrame("CHAV8 - Button Layout Configuration");
+        this.buttonLayoutFrame.setLayout(new BorderLayout());
+
+        JPanel buttonConfig = new JPanel();                     //Button config panel
+        buttonConfig.setLayout(new FlowLayout());
+
+        JPanel buttonOriginalLayout = new JPanel();                     //Original CHIP-8 Button layout
+        buttonOriginalLayout.setLayout(new GridLayout(4, 4));
+        JPanel buttonUserLayout = new JPanel();                         //User defined CHIP-8 Button layout
+        buttonUserLayout.setLayout(new GridLayout(4, 4));
+
+        JPanel panelTitles = new JPanel();
+        panelTitles.setLayout(new GridLayout(1, 2));
+
+        JLabel originalKeypadTitle = new JLabel("CHIP-8 Keypad");
+        JLabel userKeypadTitle = new JLabel("Mapped Keypad");
+        originalKeypadTitle.setHorizontalAlignment(SwingConstants.CENTER);
+        originalKeypadTitle.setVerticalAlignment(SwingConstants.CENTER);
+        userKeypadTitle.setHorizontalAlignment(SwingConstants.CENTER);
+        userKeypadTitle.setVerticalAlignment(SwingConstants.CENTER);
+
+        this.buttonMapping = this.config.getKeyboardConfig();
+
+        panelTitles.add(originalKeypadTitle);
+        panelTitles.add(userKeypadTitle);
+
+        String keys = "123C456D789EA0BF";
+        for (int i = 0; i<16; i++) {
+            JButton originalKey = new JButton(String.valueOf(keys.charAt(i)));
+            originalKey.setEnabled(false);
+
+            KeyMapButton userKey = new KeyMapButton((String.valueOf((char)(this.buttonMapping[i]))), i);
+            userKey.setPreferredSize(new Dimension(50, 25));
+
+            userKey.getDocument().addDocumentListener(new DocumentListener() {
+                @Override
+                public void insertUpdate(DocumentEvent e) {
+                    warn(userKey.getIndex(), userKey.getText().charAt(0));
+                }
+
+                @Override
+                public void removeUpdate(DocumentEvent e) {
+                    warn(userKey.getIndex(), userKey.getText().charAt(0));
+                }
+
+                @Override
+                public void changedUpdate(DocumentEvent e) {
+                    warn(userKey.getIndex(), userKey.getText().charAt(0));
+                }
+
+                public void warn(int index, int value) {
+                    buttonMapping[index] = value;
+                }
+            });
+
+            buttonOriginalLayout.add(originalKey);
+            buttonUserLayout.add(userKey);
+        }
+
+        buttonConfig.add(buttonOriginalLayout);
+        buttonConfig.add(new JLabel("=>"));
+        buttonConfig.add(buttonUserLayout);
+
+        JPanel buttonConfigSaveNExit = new JPanel();
+        buttonConfigSaveNExit.setLayout(new FlowLayout());
+
+        JButton buttonConfigApplyButton = new JButton("Apply");
+        JButton buttonConfigCancelButton = new JButton("Cancel");
+        buttonConfigApplyButton.addActionListener(e -> {
+            for (int i : this.buttonMapping) {
+                System.out.println(i);
+            }
+            this.config.setKeyboardConfig(this.buttonMapping);
+
+            this.display.updateConfig(this.config);
+
+            this.buttonLayoutFrame.dispose();
+
+            this.prevConfig.reset();
+        });
+        buttonConfigCancelButton.addActionListener(e -> {
+            this.buttonLayoutFrame.dispose();
+
+            this.prevConfig.reset();
+        });
+
+        buttonConfigSaveNExit.add(buttonConfigApplyButton);
+        buttonConfigSaveNExit.add(buttonConfigCancelButton);
+
         this.buttonLayoutFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-        this.buttonLayoutFrame.setSize(300,200);
+        JComponent buttonLayoutContent = (JComponent) this.buttonLayoutFrame.getContentPane();
+        buttonLayoutContent.setBorder(new EmptyBorder(20,20,20,20));
         this.buttonLayoutFrame.setResizable(false);
         this.buttonLayoutFrame.setVisible(false);
         this.buttonLayoutFrame.setLocationRelativeTo(null);
+
+        this.buttonLayoutFrame.add(panelTitles, BorderLayout.NORTH);
+        this.buttonLayoutFrame.add(buttonConfig, BorderLayout.CENTER);
+        this.buttonLayoutFrame.add(buttonConfigSaveNExit, BorderLayout.SOUTH);
+
+        this.buttonLayoutFrame.pack();
 
         JMenuBar menuBar = new JMenuBar();
         JMenu fileMenu = new JMenu("File");
@@ -220,14 +322,17 @@ public class Chip8Emulator {
         this.pauseItem = new JMenuItem("Pause");
         this.pauseItem.addActionListener(e -> stop());
         this.pauseItem.setVisible(false);
+
         //Close Item
         this.closeGameItem = new JMenuItem("Close game");
         this.closeGameItem.addActionListener(e -> closeGame());
         this.closeGameItem.setVisible(false);
+
         //Reset Item
         this.resetItem = new JMenuItem("Reset");
         this.resetItem.addActionListener(e -> resetGame());
         this.resetItem.setVisible(false);
+
         //Run Item
         JMenuItem runItem = new JMenuItem("Run");
         Action runItemAction = new AbstractAction("Run") {
@@ -241,6 +346,7 @@ public class Chip8Emulator {
         };
         runItem.setAction(runItemAction);
         runItem.setVisible(false);
+
         //Open Item
         JMenuItem openItem = new JMenuItem("Open");
         Action openItemAction = new AbstractAction("Open") {
@@ -268,12 +374,14 @@ public class Chip8Emulator {
         //Colors Item
         this.colorsItem = new JMenuItem("Colors");
         this.colorsItem.addActionListener(e -> this.colorsFrame.setVisible(true));
+
         //Clock speed Item
         this.clockSpeedItem = new JMenuItem("Clock Speed");
         this.clockSpeedItem.addActionListener(e -> this.clockSpeedFrame.setVisible(true));
+
         //Button layout Item
         this.buttonLayoutItem = new JMenuItem("Button Layout");
-        this.buttonLayoutItem.addActionListener(e -> this.buttonLayoutFrame.setVisible(true));
+        this.buttonLayoutItem.addActionListener(e -> {this.getButtonMapping(); this.buttonLayoutFrame.setVisible(true);});
 
         fileMenu.add(openItem);
         fileMenu.add(runItem);
@@ -306,6 +414,10 @@ public class Chip8Emulator {
         this.frame.setFocusable(true);
 
         setStartScreen();
+    }
+
+    private void getButtonMapping() {
+        this.buttonMapping = this.config.getKeyboardConfig();
     }
 
     private int mapKey(int keyCode) {

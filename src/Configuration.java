@@ -90,6 +90,8 @@ public class Configuration {
         this.keyboardConfig = keyboardConfig;
     }
 
+    public void setKeyboardConfigValueByIndex(int index, int value) { this.keyboardConfig[index] = value; }
+
     public void setClockSpeed(int clockSpeed) {
         this.clockSpeed = clockSpeed;
     }

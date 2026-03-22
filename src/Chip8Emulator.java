@@ -20,6 +20,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.Time;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -238,33 +240,28 @@ public class Chip8Emulator {
         panelTitles.add(userKeypadTitle);
 
         String keys = "123C456D789EA0BF";
+        ArrayList<KeyMapButton> keyMapButtons = new ArrayList<>(16);
         for (int i = 0; i<16; i++) {
             JButton originalKey = new JButton(String.valueOf(keys.charAt(i)));
             originalKey.setEnabled(false);
 
-            KeyMapButton userKey = new KeyMapButton((String.valueOf((char)(this.buttonMapping[i]))), i);
-            userKey.setPreferredSize(new Dimension(50, 25));
+            KeyMapButton userKey = new KeyMapButton();
+            userKey.setText((String.valueOf((char)(this.buttonMapping[i]))).toUpperCase());
+            userKey.setAssignedKey((char)(this.buttonMapping[i]));
+            userKey.setIndex(i);
+            userKey.addKeyAssignedListener(((source, key, index) -> {
+                System.out.println("Campo " + index + " asignó tecla: " + key);
+            }));
 
-            userKey.getDocument().addDocumentListener(new DocumentListener() {
+            // Agregar listener de mouse para iniciar asignación al hacer click
+            userKey.addMouseListener(new java.awt.event.MouseAdapter() {
                 @Override
-                public void insertUpdate(DocumentEvent e) {
-                    warn(userKey.getIndex(), userKey.getText().charAt(0));
-                }
-
-                @Override
-                public void removeUpdate(DocumentEvent e) {
-                    warn(userKey.getIndex(), userKey.getText().charAt(0));
-                }
-
-                @Override
-                public void changedUpdate(DocumentEvent e) {
-                    warn(userKey.getIndex(), userKey.getText().charAt(0));
-                }
-
-                public void warn(int index, int value) {
-                    buttonMapping[index] = value;
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    userKey.startKeyAssignment();
                 }
             });
+
+            keyMapButtons.add(userKey);
 
             buttonOriginalLayout.add(originalKey);
             buttonUserLayout.add(userKey);
@@ -280,18 +277,35 @@ public class Chip8Emulator {
         JButton buttonConfigApplyButton = new JButton("Apply");
         JButton buttonConfigCancelButton = new JButton("Cancel");
         buttonConfigApplyButton.addActionListener(e -> {
-            for (int i : this.buttonMapping) {
-                System.out.println(i);
+            boolean errorAtConfig = false;
+
+            for (KeyMapButton key: keyMapButtons) {
+                if (key.getText().equals("?")) {
+                    errorAtConfig=true;
+                    break;
+                }
+                this.buttonMapping[key.getIndex()] = key.getAssignedKey();
             }
-            this.config.setKeyboardConfig(this.buttonMapping);
 
-            this.display.updateConfig(this.config);
+            if (errorAtConfig) {
+                JOptionPane.showMessageDialog(null, "One or more keys aren't mapped correctly!", "Error", JOptionPane.ERROR_MESSAGE);
+            } else {
+                this.config.setKeyboardConfig(this.buttonMapping);
 
-            this.buttonLayoutFrame.dispose();
+                this.display.updateConfig(this.config);
 
-            this.prevConfig.reset();
+                this.buttonLayoutFrame.dispose();
+
+                this.prevConfig.reset();
+            }
+
         });
         buttonConfigCancelButton.addActionListener(e -> {
+            for (KeyMapButton key: keyMapButtons) {
+                key.setAssignedKey((char) this.buttonMapping[key.getIndex()]);
+                key.setText(String.valueOf((char) this.buttonMapping[key.getIndex()]));
+            }
+
             this.buttonLayoutFrame.dispose();
 
             this.prevConfig.reset();
